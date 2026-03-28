@@ -16,7 +16,7 @@ st.set_page_config(page_title="MediScan AI", layout="centered")
 st.title("🧠 MediScan AI")
 st.subheader("AI-powered Chest Scan Analysis")
 
-# 🔥 Sidebar Mode
+# Sidebar
 mode = st.sidebar.selectbox("Select Mode", ["User", "Doctor"])
 
 # ===================== USER MODE =====================
@@ -40,13 +40,16 @@ if mode == "User":
         img = img / 255.0
         img = np.expand_dims(img, axis=0)
 
+        # 🔥 SPINNER + PREDICTION
+        with st.spinner("Analyzing image..."):
+            type_pred = type_model.predict(img)
+            disease_pred = disease_model.predict(img)
+
         # TYPE
-        type_pred = type_model.predict(img)
         type_classes = ["CT","XRAY"]
         img_type = type_classes[np.argmax(type_pred)]
 
         # DISEASE
-        disease_pred = disease_model.predict(img)
         disease_classes = ["NORMAL","PNEUMONIA","TB"]
         disease = disease_classes[np.argmax(disease_pred)]
 
@@ -58,7 +61,38 @@ if mode == "User":
         st.progress(confidence/100)
         st.write(f"Confidence: {confidence:.2f}%")
 
-        # 🔥 GRAD-CAM (simple)
+        # 🔥 DATA CREATE
+        data = {
+            "Name": name,
+            "Age": age,
+            "Gender": gender,
+            "Type": img_type,
+            "Disease": disease,
+            "Confidence": confidence
+        }
+
+        # 🔥 DOWNLOAD BUTTON
+        report_df = pd.DataFrame([data])
+        st.download_button(
+            label="📄 Download Report",
+            data=report_df.to_csv(index=False),
+            file_name="patient_report.csv",
+            mime="text/csv"
+        )
+
+        # 🔥 SAVE DATA
+        df = pd.DataFrame([data])
+
+        try:
+            old = pd.read_csv("records.csv")
+            df = pd.concat([old, df])
+        except:
+            pass
+
+        df.to_csv("records.csv", index=False)
+        st.success("✅ Record Saved Successfully!")
+
+        # 🔥 GRAD-CAM
         heatmap = get_gradcam(disease_model, img)
         heatmap = cv2.resize(heatmap, (224,224))
 
@@ -73,28 +107,6 @@ if mode == "User":
 
         st.write("🔍 Highlighted area shows the region influencing AI prediction")
 
-        # 🔥 SAVE DATA
-        data = {
-            "Name": name,
-            "Age": age,
-            "Gender": gender,
-            "Type": img_type,
-            "Disease": disease,
-            "Confidence": confidence
-        }
-
-        df = pd.DataFrame([data])
-
-        try:
-            old = pd.read_csv("records.csv")
-            df = pd.concat([old, df])
-        except:
-            pass
-
-        df.to_csv("records.csv", index=False)
-
-        st.success("✅ Record Saved Successfully!")
-
 # ===================== DOCTOR MODE =====================
 elif mode == "Doctor":
 
@@ -105,13 +117,20 @@ elif mode == "Doctor":
 
         st.dataframe(df)
 
-        # 🔥 Simple filter
+        # 🔥 DELETE ALL BUTTON
+        if st.button("🗑️ Delete All Records"):
+            df = pd.DataFrame()
+            df.to_csv("records.csv", index=False)
+            st.success("All records deleted!")
+            st.rerun()
+
+        # 🔥 FILTER
         disease_filter = st.selectbox("Filter by Disease", ["All"] + list(df["Disease"].unique()))
 
         if disease_filter != "All":
-            df = df[df["Disease"] == disease_filter]
+            filtered_df = df[df["Disease"] == disease_filter]
             st.write("Filtered Results:")
-            st.dataframe(df)
+            st.dataframe(filtered_df)
 
     except:
         st.warning("No records found yet.")
