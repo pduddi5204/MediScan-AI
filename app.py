@@ -5,132 +5,169 @@ import numpy as np
 from utils.gradcam import get_gradcam
 import cv2
 import pandas as pd
+import time
 
-# load models
+# ---------------- SESSION ----------------
+if "started" not in st.session_state:
+    st.session_state.started = False
+
+# ---------------- CONFIG ----------------
+st.set_page_config(page_title="MediScan AI", layout="centered")
+
+# ---------------- STYLING ----------------
+st.markdown("""
+<style>
+.card {
+    padding:20px;
+    border-radius:15px;
+    background:linear-gradient(to right,#1e3c72,#2a5298);
+    color:white;
+    box-shadow:0px 5px 15px rgba(0,0,0,0.3);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ---------------- HEADER ----------------
+st.markdown("""
+<h1 style='text-align:center;'>🧠 MediScan AI</h1>
+<p style='text-align:center;'>Smart AI Medical Diagnosis System</p>
+<hr>
+""", unsafe_allow_html=True)
+
+# ---------------- MODELS ----------------
 type_model = load_model("model/type_model.h5")
 disease_model = load_model("model/disease_model.h5")
 
-# UI
-st.set_page_config(page_title="MediScan AI", layout="centered")
-
-st.title("🧠 MediScan AI")
-st.subheader("AI-powered Chest Scan Analysis")
-
-# Sidebar
+# ---------------- SIDEBAR ----------------
 mode = st.sidebar.selectbox("Select Mode", ["User", "Doctor"])
 
-# ===================== USER MODE =====================
+# ================= USER =================
 if mode == "User":
 
-    st.markdown("### 👤 Patient Details")
+    # HERO
+    st.markdown("""
+    <div style="text-align:center;padding:30px;background:#1e3c72;color:white;border-radius:15px;">
+    <h2>MediScan AI</h2>
+    <p>AI-powered Chest Scan Diagnosis</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    name = st.text_input("Name")
-    age = st.number_input("Age", 1, 100)
-    gender = st.selectbox("Gender", ["Male", "Female", "Other"])
+    # FEATURES
+    st.markdown("""
+    ### ✨ Features
+    - AI Detection  
+    - Heatmap Visualization  
+    - Report Generation  
+    - Doctor Dashboard  
+    """)
 
-    st.markdown("### 📤 Upload Medical Image")
-    uploaded_file = st.file_uploader("Upload Image", type=["jpg","png","jpeg"])
+    # START BUTTON
+    if st.button("🚀 Start Scan"):
+        st.session_state.started = True
 
-    if uploaded_file:
-        st.image(uploaded_file, caption="Uploaded Image", use_column_width=True)
+    # FORM
+    if st.session_state.started:
 
-        # IMAGE PREPROCESS
-        img = image.load_img(uploaded_file, target_size=(224,224))
-        img = image.img_to_array(img)
-        img = img / 255.0
-        img = np.expand_dims(img, axis=0)
+        st.markdown("### 👤 Patient Details")
 
-        # 🔥 SPINNER + PREDICTION
-        with st.spinner("Analyzing image..."):
+        name = st.text_input("Name")
+        age = st.number_input("Age", 1, 100)
+        gender = st.selectbox("Gender", ["Male","Female","Other"])
+
+        st.markdown("### 📤 Upload Scan")
+        uploaded_file = st.file_uploader("", type=["jpg","png","jpeg"])
+
+        if uploaded_file:
+
+            st.image(uploaded_file)
+
+            img = image.load_img(uploaded_file, target_size=(224,224))
+            img = image.img_to_array(img)/255.0
+            img = np.expand_dims(img, axis=0)
+
+            # SCAN ANIMATION
+            progress = st.progress(0)
+            for i in range(100):
+                time.sleep(0.01)
+                progress.progress(i+1)
+
+            # PREDICT
             type_pred = type_model.predict(img)
             disease_pred = disease_model.predict(img)
 
-        # TYPE
-        type_classes = ["CT","XRAY"]
-        img_type = type_classes[np.argmax(type_pred)]
+            img_type = ["CT","XRAY"][np.argmax(type_pred)]
+            disease = ["NORMAL","PNEUMONIA","TB"][np.argmax(disease_pred)]
+            confidence = float(np.max(disease_pred)*100)
 
-        # DISEASE
-        disease_classes = ["NORMAL","PNEUMONIA","TB"]
-        disease = disease_classes[np.argmax(disease_pred)]
+            # RESULT CARD
+            st.markdown(f"""
+            <div class="card">
+            <h3>🧠 AI Diagnosis</h3>
+            <p>Type: {img_type}</p>
+            <p>Disease: {disease}</p>
+            <p>Confidence: {confidence:.2f}%</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-        # RESULT UI
-        st.success(f"Image Type: {img_type}")
-        st.info(f"Disease: {disease}")
+            # REPORT
+            st.markdown(f"""
+            ### 🧾 Report
+            Name: {name}  
+            Age: {age}  
+            Disease: {disease}  
+            Confidence: {confidence:.2f}%
+            """)
 
-        confidence = float(np.max(disease_pred)*100)
-        st.progress(confidence/100)
-        st.write(f"Confidence: {confidence:.2f}%")
+            # SAVE
+            data = {
+                "Name": name,
+                "Age": age,
+                "Gender": gender,
+                "Disease": disease,
+                "Confidence": confidence
+            }
 
-        # 🔥 DATA CREATE
-        data = {
-            "Name": name,
-            "Age": age,
-            "Gender": gender,
-            "Type": img_type,
-            "Disease": disease,
-            "Confidence": confidence
-        }
+            df = pd.DataFrame([data])
 
-        # 🔥 DOWNLOAD BUTTON
-        report_df = pd.DataFrame([data])
-        st.download_button(
-            label="📄 Download Report",
-            data=report_df.to_csv(index=False),
-            file_name="patient_report.csv",
-            mime="text/csv"
-        )
+            try:
+                old = pd.read_csv("records.csv")
+                df = pd.concat([old, df])
+            except:
+                pass
 
-        # 🔥 SAVE DATA
-        df = pd.DataFrame([data])
+            df.to_csv("records.csv", index=False)
 
-        try:
-            old = pd.read_csv("records.csv")
-            df = pd.concat([old, df])
-        except:
-            pass
+            # HEATMAP
+            heatmap = get_gradcam(disease_model, img)
+            heatmap = cv2.resize(heatmap, (224,224))
 
-        df.to_csv("records.csv", index=False)
-        st.success("✅ Record Saved Successfully!")
+            heatmap = np.uint8(255 * heatmap)
+            heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
 
-        # 🔥 GRAD-CAM
-        heatmap = get_gradcam(disease_model, img)
-        heatmap = cv2.resize(heatmap, (224,224))
+            original = np.uint8(255 * img[0])
+            result = heatmap * 0.4 + original
 
-        original = img[0]
+            st.image(result.astype("uint8"), caption="🔥 Highlighted Area")
 
-        heatmap = np.uint8(255 * heatmap)
-        heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)
-
-        superimposed_img = heatmap * 0.4 + original * 255
-
-        st.image(superimposed_img.astype("uint8"), caption="Highlighted Area 🔥")
-
-        st.write("🔍 Highlighted area shows the region influencing AI prediction")
-
-# ===================== DOCTOR MODE =====================
+# ================= DOCTOR =================
 elif mode == "Doctor":
 
-    st.markdown("### 👨‍⚕️ Patient Records")
+    st.session_state.started = False  # 🔥 important
+
+    st.markdown("### 👨‍⚕️ Doctor Dashboard")
 
     try:
         df = pd.read_csv("records.csv")
 
-        st.dataframe(df)
+        if df.empty:
+            st.warning("No records")
+        else:
+            st.dataframe(df)
+            st.bar_chart(df["Disease"].value_counts())
 
-        # 🔥 DELETE ALL BUTTON
-        if st.button("🗑️ Delete All Records"):
-            df = pd.DataFrame()
-            df.to_csv("records.csv", index=False)
-            st.success("All records deleted!")
+        if st.button("🗑️ Delete All"):
+            pd.DataFrame().to_csv("records.csv", index=False)
             st.rerun()
 
-        # 🔥 FILTER
-        disease_filter = st.selectbox("Filter by Disease", ["All"] + list(df["Disease"].unique()))
-
-        if disease_filter != "All":
-            filtered_df = df[df["Disease"] == disease_filter]
-            st.write("Filtered Results:")
-            st.dataframe(filtered_df)
-
     except:
-        st.warning("No records found yet.")
+        st.warning("No data yet")
