@@ -1,0 +1,32 @@
+record_id,created_at,reviewed_at,patient_name,age,gender,scan_type,disease,confidence,priority,doctor_id,doctor_name,centre_id,status,doctor_remarks,doctor_decision,original_image_path,heatmap_image_path,pdf_path
+b00edf6b2d48,,,,1.0,Male,XRAY,NORMAL,98.88614654541016,High,,,,Pending,,Pending,,,
+b00edf6b2d48,,,,1.0,Male,XRAY,NORMAL,98.88614654541016,High,,,,Pending,,Pending,,,
+22593d07722a,,,,1.0,Male,CT,PNEUMONIA,93.57997131347656,High,,,,Pending,,Pending,,,
+016ce524e820,,,,1.0,Male,CT,TB,61.40760803222656,Medium,,,,Pending,,Pending,,,
+b2dc7cadddfe,,,,1.0,Male,CT,NORMAL,99.9215850830078,High,,,,Pending,,Pending,,,
+75d601da6f63,,,,1.0,Male,CT,PNEUMONIA,95.42237091064452,High,,,,Pending,,Pending,,,
+016ce524e820,,,,1.0,Male,CT,TB,61.40760803222656,Medium,,,,Pending,,Pending,,,
+845df146e93b,,,pardeep,19.0,Male,CT,NORMAL,99.57129669189452,High,,,,Pending,,Pending,,,
+e2077d290171,,,pardeep chaudhary,19.0,Male,XRAY,PNEUMONIA,99.91490936279295,High,,,,Pending,,Pending,,,
+a1d14c200292,,,pardeep,19.0,Male,XRAY,PNEUMONIA,99.9897918701172,High,,,,Pending,,Pending,,,
+7e93914775ff,,,pardeep,19.0,Male,XRAY,PNEUMONIA,99.59764099121094,High,,,,Pending,,Pending,,,
+7e93914775ff,,,pardeep,19.0,Male,XRAY,PNEUMONIA,99.59764099121094,High,,,,Pending,,Pending,,,
+7e93914775ff,,,pardeep,19.0,Male,XRAY,PNEUMONIA,99.59764099121094,High,,,,Pending,,Pending,,,
+eeed826ca0f5,,,pardeep,19.0,Male,XRAY,PNEUMONIA,99.99693298339844,High,,,,Pending,,Pending,,,
+eeed826ca0f5,,,pardeep,19.0,Male,XRAY,PNEUMONIA,99.99693298339844,High,,,,Pending,,Pending,,,
+a1d14c200292,,,pardeep,19.0,Male,XRAY,PNEUMONIA,99.9897918701172,High,,,,Pending,,Pending,,,
+42728c553c47,,,pardeep,19.0,Male,XRAY,PNEUMONIA,95.26030731201172,High,,,,Pending,,Pending,,,
+9e7b7f27ecdb,,,pardeep,1.0,Male,,PNEUMONIA,99.9897918701172,High,,,,Pending,,Pending,,,
+266dcbe704b7,,,pardeep,1.0,Male,,TB,97.0519027709961,High,,,,Pending,,Pending,,,
+0a3820a169af,,,,,,XRAY,TB,99.96446228027344,High,doct1,,alpha-centre11,Rejected,,Pending,,,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_0a3820a169af.pdf
+27907b6b1751,,,,19.0,Male,XRAY,TB,99.96446228027344,High,doct1,,alpha-centre11,Rejected,,Pending,uploads/Tuberculosis-2.png,,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_27907b6b1751.pdf
+722cdd2b1b6d,2026-03-31T06:56:16+00:00,,vishesh,19,Male,XRAY,Pneumonia,99.99,High,doct1,,alpha-centre11,Approved,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_722cdd2b1b6d.jpeg,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_722cdd2b1b6d.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_722cdd2b1b6d.pdf
+5f206b708919,2026-03-31T07:25:37+00:00,,pardeep,19,Male,XRAY,TB,99.99,High,doct1,,alpha-centre11,Pending,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_5f206b708919.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_5f206b708919.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_5f206b708919.pdf
+6c7691a82916,2026-03-31T07:29:03+00:00,,pardeep,19,Male,XRAY,TB,99.99,High,doct1,,alpha-centre11,Pending,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_6c7691a82916.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_6c7691a82916.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_6c7691a82916.pdf
+dbcd8642c5da,2026-03-31T07:36:44+00:00,,vishesh,19,Male,CT,TB,95.00,High,doct1,,alpha-centre11,Pending,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_dbcd8642c5da.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_dbcd8642c5da.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_dbcd8642c5da.pdf
+800b1fce11d7,2026-03-31T07:37:21+00:00,,vishesh,19,Male,XRAY,Normal,76.24,Medium,doct1,,alpha-centre11,Approved,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_800b1fce11d7.jpeg,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_800b1fce11d7.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_800b1fce11d7.pdf
+10e1c79ec22f,2026-03-31T07:38:07+00:00,,vishesh,19,Male,XRAY,Pneumonia,89.53,High,doct1,,alpha-centre11,Approved,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_10e1c79ec22f.jpeg,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_10e1c79ec22f.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_10e1c79ec22f.pdf
+b795c15bc73a,2026-03-31T11:52:52+00:00,,yash,20,Male,XRAY,Pneumonia,86.59,High,doct2,,alpha-centre11,Approved,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_b795c15bc73a.jpeg,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_b795c15bc73a.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_b795c15bc73a.pdf
+0fd5d1fa9fb4,2026-03-31T12:08:59+00:00,,yash pratap,19,Female,CT,TB,72.95,Medium,doct1,doct1,alpha-centre11,Pending,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_0fd5d1fa9fb4.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_0fd5d1fa9fb4.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_0fd5d1fa9fb4.pdf
+1db543779194,2026-03-31T13:49:47+00:00,,bhavya,19,Male,XRAY,Pneumonia,95.00,High,doct1,doct1,alpha-centre11,Pending,,Pending,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_1db543779194.jpeg,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_1db543779194.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_1db543779194.pdf
+bfb8b1f1eb9a,2026-03-31T13:51:10+00:00,2026-03-31T13:52:56+00:00,bhavya,19,Male,XRAY,Pneumonia,95.00,High,doct1,doct1,alpha-centre11,Approved,,Approved,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/original_bfb8b1f1eb9a.jpeg,/Users/pardeepduddi4gmail.com/Documents/cursor copy/uploads/heatmap_bfb8b1f1eb9a.png,/Users/pardeepduddi4gmail.com/Documents/cursor copy/reports/report_bfb8b1f1eb9a.pdf
