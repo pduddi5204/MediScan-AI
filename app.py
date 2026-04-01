@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from PIL import Image, ImageOps, ImageEnhance
+from cryptography.fernet import Fernet, InvalidToken
 
 try:
     import cv2  # type: ignore
@@ -32,6 +33,7 @@ RECORDS_CSV = os.path.join(BASE_DIR, "records.csv")
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 REPORTS_DIR = os.path.join(BASE_DIR, "reports")
 MODEL_DIR = os.path.join(BASE_DIR, "model")
+SECRET_KEY_PATH = os.path.join(BASE_DIR, "secret.key")
 
 
 RECORD_COLUMNS = [
@@ -59,6 +61,44 @@ RECORD_COLUMNS = [
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def get_or_create_fernet() -> Fernet | None:
+    """Load key from disk or create one safely."""
+    try:
+        if not os.path.exists(SECRET_KEY_PATH):
+            key = Fernet.generate_key()
+            with open(SECRET_KEY_PATH, "wb") as f:
+                f.write(key)
+        with open(SECRET_KEY_PATH, "rb") as f:
+            key = f.read().strip()
+        return Fernet(key)
+    except Exception:
+        return None
+
+
+def encrypt_text(value: str) -> str:
+    fernet = get_or_create_fernet()
+    text = str(value if value is not None else "")
+    if fernet is None:
+        return text
+    try:
+        return fernet.encrypt(text.encode("utf-8")).decode("utf-8")
+    except Exception:
+        return text
+
+
+def decrypt_text(value: str) -> str:
+    fernet = get_or_create_fernet()
+    token = str(value if value is not None else "")
+    if fernet is None:
+        return token
+    try:
+        return fernet.decrypt(token.encode("utf-8")).decode("utf-8")
+    except (InvalidToken, ValueError, TypeError):
+        return token
+    except Exception:
+        return token
 
 
 def ensure_storage():
@@ -585,7 +625,7 @@ def detect_scan_and_disease(img: Image.Image) -> dict:
             x = _preprocess_for_tf(img)
             # Temperature scaling to soften overconfident softmax outputs.
             # Use 3.0 by default for a realistic demo range.
-            temperature = 3.0
+            temperature = 2.0
 
             type_pred = models["type_model"].predict(x, verbose=0)
             type_pred = np.asarray(type_pred, dtype=np.float32)
@@ -597,9 +637,10 @@ def detect_scan_and_disease(img: Image.Image) -> dict:
             type_conf_raw = float(np.max(type_pred)) * 100.0
             type_conf_scaled = float(np.max(type_probs_scaled)) * 100.0
 
+
             disease_pred = models["disease_model"].predict(x, verbose=0)
             disease_pred = np.asarray(disease_pred, dtype=np.float32)
-            disease_classes = ["Normal", "Pneumonia", "TB"]
+            disease_classes = ["Fracture", "Normal", "Pneumonia", "Tuberculosis"]
 
             disease_probs_scaled = _temperature_scale_outputs(disease_pred, temperature=temperature)
             disease_idx = int(np.argmax(disease_probs_scaled, axis=1)[0])
@@ -646,7 +687,7 @@ def detect_scan_and_disease(img: Image.Image) -> dict:
     if edges < 6.0 and std < 45:
         disease = "Normal"
     elif mean < 110 and edges > 7.5:
-        disease = "TB"
+        disease = "Tuberculosis"
     else:
         disease = "Pneumonia"
 
@@ -654,6 +695,9 @@ def detect_scan_and_disease(img: Image.Image) -> dict:
     seed = int((mean * 10) + (std * 100) + (edges * 1000)) % (2**32 - 1)
     rng = np.random.default_rng(seed)
     confidence = float(rng.uniform(68.0, 92.5))
+    if disease == "Fracture":
+        confidence += 10
+    confidence = min(confidence, 95)
     confidence = float(max(60.0, min(95.0, confidence)))
     confidence = round(confidence, 2)
     return {"scan_type": scan_type, "disease": disease, "confidence": confidence, "engine": "Heuristic"}
@@ -1215,40 +1259,19 @@ def centre_dashboard():
                 "heatmap_image_path": heatmap_path,
                 "pdf_path": "",
             }
+            # Encrypt sensitive AI outputs before persistence.
+            record_to_store = dict(record)
+            record_to_store["disease"] = encrypt_text(record["disease"])
+            record_to_store["confidence"] = encrypt_text(record["confidence"])
 
             pdf_path = os.path.join(REPORTS_DIR, f"report_{record_id}.pdf")
             ok_pdf, pdf_err = generate_pdf_report(record, original_path, heatmap_path, pdf_path)
             if ok_pdf:
-                record["pdf_path"] = pdf_path
-            append_record(record)
+                record_to_store["pdf_path"] = pdf_path
+            append_record(record_to_store)
 
-        st.success("Report generated and assigned to doctor.")
-        st.markdown("#### AI Output Summary")
-        a1, a2, a3, a4 = st.columns([0.6, 0.8, 0.8, 0.8])
-        a1.markdown(f"**Engine:** {ai['engine']}")
-        a2.markdown(f"**Scan Type:** {ai['scan_type']}")
-        a3.markdown(f"**Disease:** {ai['disease']}")
-        conf_val = float(ai["confidence"])
-        a4.markdown(f"**Confidence:** {conf_val:.2f}%")
-        st.markdown(f"**Priority:** ", unsafe_allow_html=False)
-        st.markdown(_priority_badge(_priority_label(conf_val)), unsafe_allow_html=True)
-
-        _confidence_meter(conf_val)
-
-        st.markdown("#### Heatmap (Grad-CAM)")
-        st.image(heatmap, caption="AI Heatmap Overlay", use_container_width=True)
-
-        if ok_pdf and os.path.exists(pdf_path):
-            with open(pdf_path, "rb") as f:
-                st.download_button(
-                    "Download PDF Report",
-                    data=f.read(),
-                    file_name=os.path.basename(pdf_path),
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key=f"dl_{record_id}",
-                )
-        else:
+        st.success("Report securely sent to doctor. You cannot view results.")
+        if not ok_pdf:
             st.warning(pdf_err or "PDF could not be generated.")
 
     st.markdown("---")
@@ -1259,7 +1282,7 @@ def centre_dashboard():
         st.info("No submissions yet.")
     else:
         df_c = df_c.sort_values("created_at", ascending=False)
-        show_cols = ["created_at", "record_id", "patient_name", "age", "gender", "scan_type", "disease", "confidence", "priority", "doctor_id", "status"]
+        show_cols = ["created_at", "record_id", "patient_name", "age", "gender", "scan_type", "priority", "doctor_id", "status"]
         st.dataframe(df_c[show_cols], use_container_width=True, hide_index=True)
 
     footer()
@@ -1312,6 +1335,13 @@ def doctor_dashboard():
     df = load_records()
     df_d = df[df["doctor_id"].str.lower().eq(st.session_state.user_id.lower())].copy()
     df_d = df_d.sort_values("created_at", ascending=False)
+    if not df_d.empty:
+        # Decrypt only on doctor side.
+        df_d["disease_view"] = df_d["disease"].apply(decrypt_text)
+        df_d["confidence_view"] = df_d["confidence"].apply(decrypt_text)
+    else:
+        df_d["disease_view"] = ""
+        df_d["confidence_view"] = ""
 
     pending_count = int((df_d["status"] == "Pending").sum()) if not df_d.empty else 0
     if pending_count > int(st.session_state.get("last_doc_pending_count", 0)):
@@ -1321,14 +1351,14 @@ def doctor_dashboard():
     st.markdown("#### Search & Filter")
     f1, f2, f3, f4 = st.columns([1.2, 1, 1, 1])
     q = f1.text_input("Search patient", key="doc_search")
-    disease_filter = f2.selectbox("Disease", ["All"] + sorted([d for d in df_d["disease"].dropna().unique().tolist() if d]), key="doc_dis_filter")
+    disease_filter = f2.selectbox("Disease", ["All"] + sorted([d for d in df_d["disease_view"].dropna().unique().tolist() if d]), key="doc_dis_filter")
     status_filter = f3.selectbox("Status", ["All", "Pending", "Approved", "Rejected"], key="doc_status_filter")
     priority_filter = f4.selectbox("Priority", ["All", "High", "Medium", "Low"], key="doc_priority_filter")
 
     if q.strip():
         df_d = df_d[df_d["patient_name"].str.contains(q.strip(), case=False, na=False)]
     if disease_filter != "All":
-        df_d = df_d[df_d["disease"] == disease_filter]
+        df_d = df_d[df_d["disease_view"] == disease_filter]
     if status_filter != "All":
         df_d = df_d[df_d["status"] == status_filter]
     if priority_filter != "All":
@@ -1345,12 +1375,14 @@ def doctor_dashboard():
     for _, r in df_d.iterrows():
         record_id = r["record_id"]
         status = r["status"] or "Pending"
+        disease_view = decrypt_text(r.get("disease_view", r.get("disease", "")))
+        conf_view_str = decrypt_text(r.get("confidence_view", r.get("confidence", "")))
 
         with st.container(border=True):
             top = st.columns([1.0, 1.0, 1.0, 0.9, 0.8])
             top[0].markdown(f"**Patient:** {r['patient_name'] or '—'}")
             top[1].markdown(f"**Age/Gender:** {r['age'] or '—'} / {r['gender'] or '—'}")
-            top[2].markdown(f"**Result:** {r['disease'] or '—'} ({r['confidence'] or '—'}%)")
+            top[2].markdown(f"**Result:** {disease_view or '—'} ({conf_view_str or '—'}%)")
             top[3].markdown(_status_pill(status), unsafe_allow_html=True)
             top[4].markdown(_priority_badge(r.get("priority", "Medium")), unsafe_allow_html=True)
             st.caption(
@@ -1378,19 +1410,19 @@ def doctor_dashboard():
                     st.warning("Heatmap image missing.")
 
             try:
-                conf_v = float(r.get("confidence", "0") or 0)
+                conf_v = float(conf_view_str or 0)
             except Exception:
                 conf_v = 0.0
             _confidence_meter(conf_v)
-            st.markdown(f"**AI vs Doctor:** AI predicted `{r.get('disease','—')}` vs Doctor `{r.get('doctor_decision', status)}`")
+            st.markdown(f"**AI vs Doctor:** AI predicted `{disease_view or '—'}` vs Doctor `{r.get('doctor_decision', status)}`")
 
             remarks = st.text_area("Doctor Remarks", value=r.get("doctor_remarks", ""), key=f"remarks_{record_id}", height=80)
 
             with st.expander("Report Preview"):
                 st.markdown(
                     f"**Patient:** {r.get('patient_name','—')}  \n"
-                    f"**Disease:** {r.get('disease','—')}  \n"
-                    f"**Confidence:** {r.get('confidence','—')}%  \n"
+                    f"**Disease:** {disease_view or '—'}  \n"
+                    f"**Confidence:** {conf_view_str or '—'}%  \n"
                     f"**Status:** {status}  \n"
                     f"**Doctor Remarks:** {remarks or '—'}"
                 )
@@ -1426,8 +1458,11 @@ def doctor_dashboard():
                     pdf_path = os.path.join(REPORTS_DIR, f"report_{record_id}.pdf")
                 # Refresh PDF so doctor remarks/decision are included.
                 try:
+                    pdf_record = r.to_dict()
+                    pdf_record["disease"] = disease_view
+                    pdf_record["confidence"] = conf_view_str
                     _ok_pdf, _ = generate_pdf_report(
-                        r.to_dict(),
+                        pdf_record,
                         r.get("original_image_path", ""),
                         r.get("heatmap_image_path", ""),
                         pdf_path,
@@ -1492,7 +1527,6 @@ def main():
 
     st.error("Unknown role. Please contact admin.")
     footer()
-
 
 if __name__ == "__main__":
     main()
